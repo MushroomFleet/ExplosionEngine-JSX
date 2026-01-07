@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explosion Engine - Sandbox Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a1a;
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+    
+    .demo-container {
+      width: 100%;
+      min-height: 100vh;
+    }
+    
+    #game-canvas {
+      width: 100%;
+      height: 70vh;
+      min-height: 500px;
+      background: #000011;
+      position: relative;
+    }
+    
+    /* Control Panel */
+    .control-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 20px;
+      min-width: 280px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .control-panel h3 {
+      color: #00ff88;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      margin-bottom: 15px;
+      font-size: 16px;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 10px;
+    }
+    
+    .control-group {
+      margin-bottom: 15px;
+    }
+    
+    .control-group label {
+      display: block;
+      color: #888;
+      font-size: 11px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    
+    .explosion-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .explosion-btn {
+      padding: 12px 8px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+    }
+    
+    .explosion-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px currentColor;
+    }
+    
+    .explosion-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .btn-small {
+      background: linear-gradient(135deg, #ffaa00 0%, #ff6600 100%);
+      color: #000;
+    }
+    
+    .btn-medium {
+      background: linear-gradient(135deg, #ff6600 0%, #ff3300 100%);
+      color: #fff;
+    }
+    
+    .btn-large {
+      background: linear-gradient(135deg, #ff3300 0%, #cc0000 100%);
+      color: #fff;
+    }
+    
+    .btn-boss {
+      grid-column: span 2;
+      background: linear-gradient(135deg, #8800ff 0%, #ff0088 100%);
+      color: #fff;
+      font-size: 14px;
+      padding: 15px;
+    }
+    
+    .effect-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .effect-btn {
+      padding: 10px 12px;
+      border: 1px solid #4488ff;
+      background: rgba(68, 136, 255, 0.1);
+      color: #4488ff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      transition: all 0.2s ease;
+    }
+    
+    .effect-btn:hover {
+      background: rgba(68, 136, 255, 0.3);
+      box-shadow: 0 0 10px rgba(68, 136, 255, 0.5);
+    }
+    
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #aaa;
+      font-size: 12px;
+      cursor: pointer;
+      text-transform: none;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #00ff88;
+    }
+    
+    /* Stats Display */
+    .stats-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #00ff88;
+      min-width: 180px;
+    }
+    
+    .stats-panel h4 {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 5px;
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+    }
+    
+    .stat-label {
+      color: #666;
+    }
+    
+    .stat-value {
+      color: #00ff88;
+    }
+    
+    .stat-value.active {
+      color: #ff4400;
+      text-shadow: 0 0 5px #ff4400;
+    }
+    
+    /* Instruction overlay */
+    .instructions {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 20px;
+      border-radius: 20px;
+      color: #888;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    /* Info panel */
+    .info-panel {
+      padding: 30px;
+      background: linear-gradient(180deg, #0d0d20 0%, #0a0a1a 100%);
+      border-top: 1px solid #1a1a3a;
+    }
+    
+    .info-panel h1 {
+      font-size: 2em;
+      color: #ff6600;
+      text-shadow: 0 0 20px rgba(255, 102, 0, 0.5);
+      margin-bottom: 10px;
+    }
+    
+    .info-panel h2 {
+      font-size: 1.3em;
+      color: #4488ff;
+      margin: 25px 0 15px 0;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #888;
+      font-size: 1.1em;
+      margin-bottom: 25px;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+    
+    .feature-card:hover {
+      border-color: #ff6600;
+      box-shadow: 0 0 20px rgba(255, 102, 0, 0.1);
+    }
+    
+    .feature-card h3 {
+      color: #ff6600;
+      margin-bottom: 10px;
+    }
+    
+    .feature-card p {
+      color: #aaa;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    
+    .class-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    
+    .class-table th,
+    .class-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    
+    .class-table th {
+      color: #ff6600;
+      font-weight: 600;
+    }
+    
+    .class-table td:first-child {
+      color: #4488ff;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .config-section {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .config-section pre {
+      background: #0d0d1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 4px;
+      padding: 15px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    .config-section code {
+      color: #00ff88;
+    }
+    
+    .code-comment {
+      color: #666;
+    }
+    
+    .code-keyword {
+      color: #ff6600;
+    }
+    
+    .code-string {
+      color: #88ccff;
+    }
+    
+    .code-number {
+      color: #ffaa00;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <!-- Three.js Canvas Container -->
+    <div id="game-canvas">
+      <!-- Stats Panel -->
+      <div class="stats-panel">
+        <h4>📊 EXPLOSION STATS</h4>
+        <div class="stat-row">
+          <span class="stat-label">Active Explosions:</span>
+          <span class="stat-value" id="active-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Particles:</span>
+          <span class="stat-value" id="particle-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Wreckage Pieces:</span>
+          <span class="stat-value" id="wreckage-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">FPS:</span>
+          <span class="stat-value" id="fps-count">60</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Last Class:</span>
+          <span class="stat-value" id="last-class">-</span>
+        </div>
+      </div>
+      
+      <!-- Control Panel -->
+      <div class="control-panel">
+        <h3>💥 EXPLOSION CONTROLS</h3>
+        
+        <div class="control-group">
+          <label>Trigger Explosion Class</label>
+          <div class="explosion-buttons">
+            <button class="explosion-btn btn-small" onclick="triggerExplosion('SMALL')">
+              SMALL
+            </button>
+            <button class="explosion-btn btn-medium" onclick="triggerExplosion('MEDIUM')">
+              MEDIUM
+            </button>
+            <button class="explosion-btn btn-large" onclick="triggerExplosion('LARGE')">
+              LARGE
+            </button>
+            <button class="explosion-btn btn-boss" onclick="triggerExplosion('BOSS')">
+              🔥 BOSS EXPLOSION 🔥
+            </button>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <label>Individual Effects</label>
+          <div class="effect-buttons">
+            <button class="effect-btn" onclick="triggerEffect('shockwave')">
+              ◎ Shockwave Only
+            </button>
+            <button class="effect-btn" onclick="triggerEffect('particles')">
+              ✦ Particles Only
+            </button>
+            <button class="effect-btn" onclick="triggerEffect('wreckage')">
+              ▣ Wreckage Only
+            </button>
+            <button class="effect-btn" onclick="triggerEffect('smoke')">
+              ☁ Smoke Trail Only
+            </button>
+            <button class="effect-btn" onclick="triggerEffect('flash')">
+              ✸ Flash Only
+            </button>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <label>Options</label>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" id="opt-wreckage" checked>
+              Show Falling Wreckage
+            </label>
+            <label>
+              <input type="checkbox" id="opt-secondary" checked>
+              Secondary Ground Explosions
+            </label>
+            <label>
+              <input type="checkbox" id="opt-shake" checked>
+              Camera Shake
+            </label>
+            <label>
+              <input type="checkbox" id="opt-flash" checked>
+              Screen Flash
+            </label>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <button class="effect-btn" style="width: 100%; background: rgba(255,68,0,0.2); border-color: #ff4400; color: #ff4400;" onclick="clearAll()">
+            ✕ CLEAR ALL EFFECTS
+          </button>
+        </div>
+      </div>
+      
+      <!-- Instructions -->
+      <div class="instructions">
+        Click buttons to trigger explosions • Enemy respawns after each explosion
+      </div>
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="info-panel">
+      <h1>💥 ExplosionEngine.jsx</h1>
+      <p class="subtitle">Starfox 64 Style Destruction System - Component Sandbox</p>
+      
+      <h2>Explosion Classes</h2>
+      <table class="class-table">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Particles</th>
+            <th>Shockwave</th>
+            <th>Wreckage</th>
+            <th>Duration</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SMALL</td>
+            <td>15</td>
+            <td>3x scale</td>
+            <td>1 piece</td>
+            <td>800ms</td>
+            <td>Basic fighters, projectiles</td>
+          </tr>
+          <tr>
+            <td>MEDIUM</td>
+            <td>30</td>
+            <td>5x scale</td>
+            <td>2 pieces</td>
+            <td>1000ms</td>
+            <td>Standard enemies</td>
+          </tr>
+          <tr>
+            <td>LARGE</td>
+            <td>50</td>
+            <td>8x scale</td>
+            <td>4 pieces</td>
+            <td>1400ms</td>
+            <td>Elite enemies, mini-bosses</td>
+          </tr>
+          <tr>
+            <td>BOSS</td>
+            <td>100</td>
+            <td>15x scale</td>
+            <td>8 pieces</td>
+            <td>2500ms</td>
+            <td>Boss defeats, chain explosions</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <h2>Key Features</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3>🔥 Multi-Layer Particles</h3>
+          <p>Four particle types: Core (white-hot center), Fire (orange expansion), Sparks (falling embers), and Smoke (billowing aftermath). Each type has unique physics and color palettes.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>◎ Expanding Shockwave</h3>
+          <p>Dual-ring shockwave effect with additive blending. Rapid expansion with smooth fade-out creates impactful visual punch.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>▣ Falling Wreckage</h3>
+          <p>Black rotating cuboids that tumble along the enemy's forward vector. Realistic gravity physics with configurable initial velocity and spread angle.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>☁ Smoke Trails</h3>
+          <p>Continuous smoke particle emission from falling wreckage. Particles grow, rise, and fade naturally for realistic trailing effect.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>💢 Secondary Explosions</h3>
+          <p>When wreckage impacts the ground, triggers smaller secondary explosion. Creates satisfying "double destruction" feedback.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>🔗 Chain Explosions</h3>
+          <p>Boss-class explosions trigger multiple delayed sub-explosions at random offsets. Creates dramatic, prolonged destruction sequence.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>📹 Camera Shake</h3>
+          <p>Intensity-based camera shake scaled to explosion class. Adds visceral impact to destruction events.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3>⚡ Performance Optimized</h3>
+          <p>Object pooling ready, automatic cleanup, configurable particle counts. Designed for many simultaneous explosions without frame drops.</p>
+        </div>
+      </div>
+      
+      <h2>Integration Example</h2>
+      <div class="config-section">
+        <pre><code><span class="code-comment">// Import the explosion manager hook</span>
+<span class="code-keyword">import</span> { useExplosionManager, ExplosionRenderer } <span class="code-keyword">from</span> <span class="code-string">'./ExplosionEngine'</span>;
+
+<span class="code-keyword">function</span> GameScene() {
+  <span class="code-keyword">const</span> { explosions, triggerExplosion, removeExplosion } = useExplosionManager();
+  
+  <span class="code-keyword">const</span> handleEnemyDeath = (enemy) => {
+    triggerExplosion({
+      position: enemy.position,
+      forwardVector: enemy.forwardVector,
+      explosionClass: enemy.isBoss ? <span class="code-string">'BOSS'</span> : <span class="code-string">'MEDIUM'</span>,
+      showWreckage: <span class="code-keyword">true</span>,
+    });
+  };
+  
+  <span class="code-keyword">return</span> (
+    &lt;&gt;
+      {<span class="code-comment">/* Your game elements */</span>}
+      &lt;EnemyManager onEnemyDeath={handleEnemyDeath} /&gt;
+      
+      {<span class="code-comment">/* Render all active explosions */</span>}
+      &lt;ExplosionRenderer 
+        explosions={explosions}
+        onExplosionComplete={removeExplosion}
+      /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+      </div>
+      
+      <h2>Exported Components</h2>
+      <table class="class-table">
+        <thead>
+          <tr>
+            <th>Export</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Explosion</td>
+            <td>Component</td>
+            <td>Complete single explosion with all effects</td>
+          </tr>
+          <tr>
+            <td>ExplosionRenderer</td>
+            <td>Component</td>
+            <td>Renders array of managed explosions</td>
+          </tr>
+          <tr>
+            <td>FallingWreckage</td>
+            <td>Component</td>
+            <td>Single falling debris piece with smoke</td>
+          </tr>
+          <tr>
+            <td>ShockwaveRing</td>
+            <td>Component</td>
+            <td>Expanding ring effect</td>
+          </tr>
+          <tr>
+            <td>ExplosionFlash</td>
+            <td>Component</td>
+            <td>Initial bright flash burst</td>
+          </tr>
+          <tr>
+            <td>CameraShake</td>
+            <td>Component</td>
+            <td>Screen shake effect controller</td>
+          </tr>
+          <tr>
+            <td>useExplosionManager</td>
+            <td>Hook</td>
+            <td>Manages explosion lifecycle</td>
+          </tr>
+          <tr>
+            <td>EXPLOSION_CONFIG</td>
+            <td>Object</td>
+            <td>All configurable constants</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <h2>Configuration</h2>
+      <div class="config-section">
+        <pre><code><span class="code-keyword">const</span> EXPLOSION_CONFIG = {
+  CLASSES: {
+    MEDIUM: {
+      particleCount: <span class="code-number">30</span>,
+      shockwaveScale: <span class="code-number">5</span>,
+      duration: <span class="code-number">1000</span>,
+      wreckagePieces: <span class="code-number">2</span>,
+      wreckageScale: [<span class="code-number">0.6</span>, <span class="code-number">0.35</span>, <span class="code-number">0.9</span>],
+      cameraShake: <span class="code-number">0.25</span>,
+      lightIntensity: <span class="code-number">15</span>,
+      lightDistance: <span class="code-number">25</span>,
+    },
+    <span class="code-comment">// ... other classes</span>
+  },
+  
+  WRECKAGE: {
+    GRAVITY: <span class="code-number">15</span>,
+    ROTATION_SPEED: { min: <span class="code-number">2</span>, max: <span class="code-number">8</span> },
+    INITIAL_VELOCITY: { min: <span class="code-number">3</span>, max: <span class="code-number">8</span> },
+    SMOKE_EMIT_RATE: <span class="code-number">0.03</span>,
+    GROUND_Y: <span class="code-number">-5</span>,
+  },
+  
+  PARTICLES: {
+    COLORS: {
+      CORE: [<span class="code-string">'#ffffff'</span>, <span class="code-string">'#ffffa0'</span>],
+      FIRE: [<span class="code-string">'#ff8800'</span>, <span class="code-string">'#ff4400'</span>],
+      SMOKE: [<span class="code-string">'#444444'</span>, <span class="code-string">'#222222'</span>],
+    },
+  },
+};</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js and Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <script>
+    // ========================================================================
+    // EXPLOSION ENGINE - VANILLA THREE.JS DEMO IMPLEMENTATION
+    // ========================================================================
+    
+    const EXPLOSION_CONFIG = {
+      CLASSES: {
+        SMALL: {
+          name: 'SMALL',
+          particleCount: 15,
+          shockwaveScale: 3,
+          duration: 800,
+          wreckagePieces: 1,
+          wreckageScale: [0.4, 0.25, 0.6],
+          cameraShake: 0.1,
+          lightIntensity: 8,
+        },
+        MEDIUM: {
+          name: 'MEDIUM',
+          particleCount: 30,
+          shockwaveScale: 5,
+          duration: 1000,
+          wreckagePieces: 2,
+          wreckageScale: [0.6, 0.35, 0.9],
+          cameraShake: 0.25,
+          lightIntensity: 15,
+        },
+        LARGE: {
+          name: 'LARGE',
+          particleCount: 50,
+          shockwaveScale: 8,
+          duration: 1400,
+          wreckagePieces: 4,
+          wreckageScale: [1.0, 0.5, 1.4],
+          cameraShake: 0.5,
+          lightIntensity: 25,
+        },
+        BOSS: {
+          name: 'BOSS',
+          particleCount: 100,
+          shockwaveScale: 15,
+          duration: 2500,
+          wreckagePieces: 8,
+          wreckageScale: [1.5, 0.8, 2.0],
+          cameraShake: 1.0,
+          lightIntensity: 50,
+          chainExplosions: true,
+          chainCount: 5,
+          chainDelay: 200,
+        },
+      },
+      WRECKAGE: {
+        GRAVITY: 15,
+        GROUND_Y: -5,
+      },
+      PARTICLE_COLORS: {
+        CORE: [0xffffff, 0xffffa0, 0xffff00],
+        FIRE: [0xff8800, 0xff4400, 0xff2200],
+        SMOKE: [0x444444, 0x333333, 0x222222],
+        SPARK: [0xffff88, 0xffaa44, 0xff6600],
+      },
+    };
+    
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
+    const randomRange = (min, max) => Math.random() * (max - min) + min;
+    const randomSpread = (spread) => (Math.random() - 0.5) * 2 * spread;
+    const easeOutQuad = (t) => 1 - (1 - t) * (1 - t);
+    const easeInQuad = (t) => t * t;
+    const easeOutExpo = (t) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    
+    // ========================================================================
+    // EXPLOSION ENGINE CLASS
+    // ========================================================================
+    class ExplosionEngine {
+      constructor(scene) {
+        this.scene = scene;
+        this.explosions = [];
+        this.particles = [];
+        this.wreckage = [];
+        this.shockwaves = [];
+        this.smokeParticles = [];
+        this.flashes = [];
+        
+        // Stats tracking
+        this.stats = {
+          activeExplosions: 0,
+          particleCount: 0,
+          wreckageCount: 0,
+          lastClass: '-',
+        };
+      }
+      
+      createParticle(position, type, config) {
+        const colors = EXPLOSION_CONFIG.PARTICLE_COLORS[type.toUpperCase()] || EXPLOSION_CONFIG.PARTICLE_COLORS.FIRE;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        const size = type === 'smoke' ? randomRange(0.3, 0.8) : randomRange(0.1, 0.4);
+        const geometry = type === 'smoke' 
+          ? new THREE.IcosahedronGeometry(size, 0)
+          : new THREE.SphereGeometry(size, 6, 6);
+        
+        const material = new THREE.MeshBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: 1,
+          blending: type === 'smoke' ? THREE.NormalBlending : THREE.AdditiveBlending,
+          depthWrite: type !== 'smoke',
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(position);
+        
+        const direction = new THREE.Vector3(
+          randomSpread(1),
+          randomSpread(1),
+          randomSpread(1)
+        ).normalize();
+        
+        const speed = type === 'core' ? randomRange(15, 30) :
+                      type === 'smoke' ? randomRange(2, 5) :
+                      randomRange(8, 20);
+        
+        this.scene.add(mesh);
+        
+        this.particles.push({
+          mesh,
+          velocity: direction.multiplyScalar(speed),
+          startTime: performance.now(),
+          lifetime: type === 'smoke' ? randomRange(1.5, 2.5) : randomRange(0.3, 1.0),
+          type,
+          initialSize: size,
+        });
+        
+        return mesh;
+      }
+      
+      createShockwave(position, scale) {
+        const geometry = new THREE.RingGeometry(0.8, 1, 32);
+        const material = new THREE.MeshBasicMaterial({
+          color: 0xffaa44,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(position);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.scale.set(0.1, 0.1, 1);
+        
+        this.scene.add(mesh);
+        
+        this.shockwaves.push({
+          mesh,
+          maxScale: scale,
+          startTime: performance.now(),
+          duration: 400,
+        });
+        
+        return mesh;
+      }
+      
+      createFlash(position, scale) {
+        const geometry = new THREE.IcosahedronGeometry(1, 1);
+        const material = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 1,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(position);
+        
+        const light = new THREE.PointLight(0xffaa44, 30, scale * 10);
+        light.position.copy(position);
+        
+        this.scene.add(mesh);
+        this.scene.add(light);
+        
+        this.flashes.push({
+          mesh,
+          light,
+          scale,
+          startTime: performance.now(),
+          duration: 200,
+        });
+      }
+      
+      createWreckage(position, forwardVector, scale) {
+        const geometry = new THREE.BoxGeometry(...scale);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x1a1a1a,
+          metalness: 0.8,
+          roughness: 0.3,
+          emissive: 0x110800,
+          emissiveIntensity: 0.5,
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(position);
+        
+        // Hot spot
+        const hotSpotGeo = new THREE.SphereGeometry(scale[1] * 0.3, 4, 4);
+        const hotSpotMat = new THREE.MeshBasicMaterial({
+          color: 0xff4400,
+          transparent: true,
+          opacity: 0.8,
+        });
+        const hotSpot = new THREE.Mesh(hotSpotGeo, hotSpotMat);
+        hotSpot.position.x = scale[0] * 0.3;
+        mesh.add(hotSpot);
+        
+        // Light
+        const light = new THREE.PointLight(0xff4400, 3, 5);
+        mesh.add(light);
+        
+        this.scene.add(mesh);
+        
+        // Calculate initial velocity
+        const spreadAngle = Math.PI / 6;
+        const direction = forwardVector.clone().normalize();
+        direction.x += randomSpread(Math.sin(spreadAngle));
+        direction.y += randomSpread(Math.sin(spreadAngle)) + 0.3;
+        direction.z += randomSpread(Math.sin(spreadAngle));
+        direction.normalize();
+        
+        const speed = randomRange(3, 8);
+        
+        this.wreckage.push({
+          mesh,
+          velocity: direction.multiplyScalar(speed),
+          rotationSpeed: new THREE.Vector3(
+            randomRange(2, 8),
+            randomRange(2, 8),
+            randomRange(2, 8)
+          ),
+          lastSmokeTime: 0,
+          landed: false,
+        });
+        
+        return mesh;
+      }
+      
+      createSmokeParticle(position) {
+        const size = randomRange(0.3, 0.6);
+        const colors = EXPLOSION_CONFIG.PARTICLE_COLORS.SMOKE;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        const geometry = new THREE.IcosahedronGeometry(size, 0);
+        const material = new THREE.MeshBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: 0.6,
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(position);
+        
+        this.scene.add(mesh);
+        
+        this.smokeParticles.push({
+          mesh,
+          velocity: new THREE.Vector3(
+            randomSpread(1),
+            randomRange(0.5, 1.5),
+            randomSpread(1)
+          ),
+          startTime: performance.now(),
+          lifetime: randomRange(0.8, 1.5),
+          initialSize: size,
+        });
+      }
+      
+      triggerExplosion(position, forwardVector, explosionClass = 'MEDIUM', options = {}) {
+        const config = EXPLOSION_CONFIG.CLASSES[explosionClass];
+        if (!config) return;
+        
+        const pos = position.clone();
+        const fwd = forwardVector.clone();
+        
+        // Update stats
+        this.stats.lastClass = explosionClass;
+        this.stats.activeExplosions++;
+        
+        // Create flash
+        if (options.showFlash !== false) {
+          this.createFlash(pos, config.shockwaveScale * 0.5);
+        }
+        
+        // Create particles
+        if (options.showParticles !== false) {
+          for (let i = 0; i < config.particleCount; i++) {
+            const type = i < config.particleCount * 0.2 ? 'core' :
+                         i < config.particleCount * 0.6 ? 'fire' :
+                         i < config.particleCount * 0.8 ? 'spark' : 'smoke';
+            this.createParticle(pos, type, config);
+          }
+        }
+        
+        // Create shockwave
+        if (options.showShockwave !== false) {
+          this.createShockwave(pos, config.shockwaveScale);
+          setTimeout(() => {
+            this.createShockwave(pos, config.shockwaveScale * 0.8);
+          }, 80);
+        }
+        
+        // Create wreckage
+        if (options.showWreckage !== false) {
+          for (let i = 0; i < config.wreckagePieces; i++) {
+            const scaleVar = 0.3;
+            const scale = config.wreckageScale.map(s => 
+              s * randomRange(1 - scaleVar, 1 + scaleVar)
+            );
+            this.createWreckage(pos, fwd, scale);
+          }
+        }
+        
+        // Camera shake
+        if (options.cameraShake !== false && this.onCameraShake) {
+          this.onCameraShake(config.cameraShake);
+        }
+        
+        // Chain explosions for boss
+        if (config.chainExplosions) {
+          for (let i = 0; i < config.chainCount; i++) {
+            setTimeout(() => {
+              const offset = new THREE.Vector3(
+                randomSpread(3),
+                randomSpread(2),
+                randomSpread(3)
+              );
+              this.triggerExplosion(
+                pos.clone().add(offset),
+                fwd,
+                'SMALL',
+                { showWreckage: false }
+              );
+            }, (i + 1) * config.chainDelay);
+          }
+        }
+        
+        // Track explosion completion
+        setTimeout(() => {
+          this.stats.activeExplosions = Math.max(0, this.stats.activeExplosions - 1);
+        }, config.duration);
+      }
+      
+      triggerEffect(effectName, position, forwardVector) {
+        const pos = position.clone();
+        const fwd = forwardVector.clone();
+        const config = EXPLOSION_CONFIG.CLASSES.MEDIUM;
+        
+        switch (effectName) {
+          case 'shockwave':
+            this.createShockwave(pos, config.shockwaveScale);
+            break;
+          case 'particles':
+            for (let i = 0; i < 20; i++) {
+              this.createParticle(pos, i < 10 ? 'fire' : 'spark', config);
+            }
+            break;
+          case 'wreckage':
+            this.createWreckage(pos, fwd, config.wreckageScale);
+            break;
+          case 'smoke':
+            for (let i = 0; i < 15; i++) {
+              setTimeout(() => {
+                const offset = new THREE.Vector3(
+                  randomSpread(1),
+                  i * 0.2,
+                  randomSpread(1)
+                );
+                this.createSmokeParticle(pos.clone().add(offset));
+              }, i * 50);
+            }
+            break;
+          case 'flash':
+            this.createFlash(pos, 3);
+            break;
+        }
+      }
+      
+      update(delta) {
+        const now = performance.now();
+        
+        // Update particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          const elapsed = (now - p.startTime) / 1000;
+          const progress = elapsed / p.lifetime;
+          
+          if (progress >= 1) {
+            this.scene.remove(p.mesh);
+            p.mesh.geometry.dispose();
+            p.mesh.material.dispose();
+            this.particles.splice(i, 1);
+            continue;
+          }
+          
+          // Move
+          p.mesh.position.add(p.velocity.clone().multiplyScalar(delta));
+          
+          // Apply physics based on type
+          if (p.type === 'fire') {
+            p.velocity.multiplyScalar(0.96);
+            p.velocity.y += delta * 2;
+          } else if (p.type === 'spark') {
+            p.velocity.multiplyScalar(0.98);
+            p.velocity.y -= delta * 15;
+          } else if (p.type === 'smoke') {
+            p.velocity.multiplyScalar(0.92);
+            p.velocity.y += delta * 1;
+          }
+          
+          // Scale and fade
+          const scale = p.initialSize * (1 - progress * 0.7);
+          p.mesh.scale.setScalar(Math.max(0.01, scale));
+          p.mesh.material.opacity = Math.max(0, 1 - progress);
+        }
+        
+        // Update shockwaves
+        for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+          const sw = this.shockwaves[i];
+          const elapsed = now - sw.startTime;
+          const progress = elapsed / sw.duration;
+          
+          if (progress >= 1) {
+            this.scene.remove(sw.mesh);
+            sw.mesh.geometry.dispose();
+            sw.mesh.material.dispose();
+            this.shockwaves.splice(i, 1);
+            continue;
+          }
+          
+          const scale = lerp(0.1, sw.maxScale, easeOutQuad(progress));
+          sw.mesh.scale.set(scale, scale, 1);
+          sw.mesh.material.opacity = 0.8 * (1 - easeInQuad(progress));
+        }
+        
+        // Update flashes
+        for (let i = this.flashes.length - 1; i >= 0; i--) {
+          const f = this.flashes[i];
+          const elapsed = now - f.startTime;
+          const progress = elapsed / f.duration;
+          
+          if (progress >= 1) {
+            this.scene.remove(f.mesh);
+            this.scene.remove(f.light);
+            f.mesh.geometry.dispose();
+            f.mesh.material.dispose();
+            this.flashes.splice(i, 1);
+            continue;
+          }
+          
+          const expansionProgress = Math.min(progress * 4, 1);
+          const scale = f.scale * easeOutExpo(expansionProgress);
+          f.mesh.scale.setScalar(scale);
+          f.mesh.material.opacity = 1 - easeInQuad(progress);
+          f.light.intensity = 30 * (1 - progress);
+        }
+        
+        // Update wreckage
+        for (let i = this.wreckage.length - 1; i >= 0; i--) {
+          const w = this.wreckage[i];
+          
+          if (w.landed) {
+            // Remove after a delay
+            if (!w.removeTime) w.removeTime = now + 2000;
+            if (now > w.removeTime) {
+              this.scene.remove(w.mesh);
+              w.mesh.geometry.dispose();
+              w.mesh.material.dispose();
+              this.wreckage.splice(i, 1);
+            }
+            continue;
+          }
+          
+          // Apply gravity
+          w.velocity.y -= EXPLOSION_CONFIG.WRECKAGE.GRAVITY * delta;
+          
+          // Update position
+          w.mesh.position.add(w.velocity.clone().multiplyScalar(delta));
+          
+          // Update rotation
+          w.mesh.rotation.x += w.rotationSpeed.x * delta;
+          w.mesh.rotation.y += w.rotationSpeed.y * delta;
+          w.mesh.rotation.z += w.rotationSpeed.z * delta;
+          
+          // Emit smoke
+          if (now - w.lastSmokeTime > 30) {
+            w.lastSmokeTime = now;
+            this.createSmokeParticle(w.mesh.position.clone());
+          }
+          
+          // Check ground collision
+          if (w.mesh.position.y <= EXPLOSION_CONFIG.WRECKAGE.GROUND_Y) {
+            w.landed = true;
+            w.mesh.position.y = EXPLOSION_CONFIG.WRECKAGE.GROUND_Y;
+            
+            // Secondary explosion
+            if (document.getElementById('opt-secondary').checked) {
+              this.triggerExplosion(
+                w.mesh.position.clone(),
+                new THREE.Vector3(0, 1, 0),
+                'SMALL',
+                { showWreckage: false }
+              );
+            }
+          }
+        }
+        
+        // Update smoke particles
+        for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+          const s = this.smokeParticles[i];
+          const elapsed = (now - s.startTime) / 1000;
+          const progress = elapsed / s.lifetime;
+          
+          if (progress >= 1) {
+            this.scene.remove(s.mesh);
+            s.mesh.geometry.dispose();
+            s.mesh.material.dispose();
+            this.smokeParticles.splice(i, 1);
+            continue;
+          }
+          
+          // Move and slow
+          s.mesh.position.add(s.velocity.clone().multiplyScalar(delta));
+          s.velocity.multiplyScalar(0.95);
+          s.velocity.y += delta * 0.8;
+          
+          // Grow then shrink
+          const growPhase = Math.min(progress * 3, 1);
+          const shrinkPhase = Math.max(0, (progress - 0.5) * 2);
+          const scale = s.initialSize * (1 + growPhase * 0.5) * (1 - shrinkPhase * 0.8);
+          s.mesh.scale.setScalar(Math.max(0.01, scale));
+          s.mesh.material.opacity = 0.6 * (1 - progress);
+        }
+        
+        // Update stats
+        this.stats.particleCount = this.particles.length + this.smokeParticles.length;
+        this.stats.wreckageCount = this.wreckage.filter(w => !w.landed).length;
+      }
+      
+      clearAll() {
+        // Clear particles
+        this.particles.forEach(p => {
+          this.scene.remove(p.mesh);
+          p.mesh.geometry.dispose();
+          p.mesh.material.dispose();
+        });
+        this.particles = [];
+        
+        // Clear shockwaves
+        this.shockwaves.forEach(sw => {
+          this.scene.remove(sw.mesh);
+          sw.mesh.geometry.dispose();
+          sw.mesh.material.dispose();
+        });
+        this.shockwaves = [];
+        
+        // Clear flashes
+        this.flashes.forEach(f => {
+          this.scene.remove(f.mesh);
+          this.scene.remove(f.light);
+          f.mesh.geometry.dispose();
+          f.mesh.material.dispose();
+        });
+        this.flashes = [];
+        
+        // Clear wreckage
+        this.wreckage.forEach(w => {
+          this.scene.remove(w.mesh);
+          w.mesh.geometry.dispose();
+          w.mesh.material.dispose();
+        });
+        this.wreckage = [];
+        
+        // Clear smoke
+        this.smokeParticles.forEach(s => {
+          this.scene.remove(s.mesh);
+          s.mesh.geometry.dispose();
+          s.mesh.material.dispose();
+        });
+        this.smokeParticles = [];
+        
+        // Reset stats
+        this.stats.activeExplosions = 0;
+        this.stats.particleCount = 0;
+        this.stats.wreckageCount = 0;
+      }
+    }
+    
+    // ========================================================================
+    // DEMO SCENE
+    // ========================================================================
+    class DemoScene {
+      constructor(container) {
+        this.container = container;
+        this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.Fog(0x0a0a1a, 30, 80);
+        
+        // Camera
+        this.camera = new THREE.PerspectiveCamera(
+          60,
+          container.clientWidth / container.clientHeight,
+          0.1,
+          1000
+        );
+        this.camera.position.set(0, 8, 20);
+        this.cameraOriginalPosition = this.camera.position.clone();
+        this.cameraShakeIntensity = 0;
+        this.cameraShakeEndTime = 0;
+        
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(container.clientWidth, container.clientHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setClearColor(0x000011);
+        container.appendChild(this.renderer.domElement);
+        
+        // Explosion Engine
+        this.explosionEngine = new ExplosionEngine(this.scene);
+        this.explosionEngine.onCameraShake = (intensity) => this.triggerCameraShake(intensity);
+        
+        // Enemy
+        this.enemyPosition = new THREE.Vector3(0, 0, -15);
+        this.enemyForward = new THREE.Vector3(0, 0.2, 1);
+        this.enemyVisible = true;
+        this.enemyRespawnTime = 0;
+        
+        // Setup scene
+        this.setupLights();
+        this.setupGround();
+        this.createEnemy();
+        
+        // FPS tracking
+        this.frameCount = 0;
+        this.lastFpsTime = performance.now();
+        this.fps = 60;
+        
+        // Animation
+        this.lastTime = performance.now();
+        this.animate();
+        
+        // Resize handler
+        window.addEventListener('resize', () => this.onResize());
+      }
+      
+      setupLights() {
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        this.scene.add(ambient);
+        
+        const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+        directional.position.set(10, 20, 10);
+        this.scene.add(directional);
+        
+        const point = new THREE.PointLight(0x4488ff, 0.5, 30);
+        point.position.set(0, 5, -10);
+        this.scene.add(point);
+      }
+      
+      setupGround() {
+        const groundGeo = new THREE.PlaneGeometry(100, 100);
+        const groundMat = new THREE.MeshStandardMaterial({
+          color: 0x1a1a2a,
+          metalness: 0.2,
+          roughness: 0.8,
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = EXPLOSION_CONFIG.WRECKAGE.GROUND_Y;
+        this.scene.add(ground);
+        
+        const grid = new THREE.GridHelper(50, 50, 0x333355, 0x222244);
+        grid.position.y = EXPLOSION_CONFIG.WRECKAGE.GROUND_Y + 0.01;
+        this.scene.add(grid);
+        
+        // Background
+        const bgGeo = new THREE.PlaneGeometry(200, 100);
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x0a0a1a });
+        const bg = new THREE.Mesh(bgGeo, bgMat);
+        bg.position.z = -50;
+        this.scene.add(bg);
+      }
+      
+      createEnemy() {
+        this.enemyGroup = new THREE.Group();
+        
+        const bodyGeo = new THREE.BoxGeometry(2, 1, 3);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0xff4444,
+          metalness: 0.6,
+          roughness: 0.3,
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        this.enemyGroup.add(body);
+        
+        const headGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const headMat = new THREE.MeshStandardMaterial({
+          color: 0x44ff44,
+          metalness: 0.6,
+          roughness: 0.3,
+        });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 0.6;
+        this.enemyGroup.add(head);
+        
+        this.enemyGroup.position.copy(this.enemyPosition);
+        this.scene.add(this.enemyGroup);
+      }
+      
+      triggerExplosion(explosionClass) {
+        if (!this.enemyVisible) return;
+        
+        const showWreckage = document.getElementById('opt-wreckage').checked;
+        const cameraShake = document.getElementById('opt-shake').checked;
+        const showFlash = document.getElementById('opt-flash').checked;
+        
+        this.explosionEngine.triggerExplosion(
+          this.enemyPosition.clone(),
+          this.enemyForward.clone(),
+          explosionClass,
+          { showWreckage, cameraShake, showFlash }
+        );
+        
+        // Hide enemy
+        this.enemyVisible = false;
+        this.enemyGroup.visible = false;
+        
+        // Schedule respawn
+        const config = EXPLOSION_CONFIG.CLASSES[explosionClass];
+        this.enemyRespawnTime = performance.now() + config.duration + 2000;
+      }
+      
+      triggerEffect(effectName) {
+        this.explosionEngine.triggerEffect(
+          effectName,
+          this.enemyPosition.clone(),
+          this.enemyForward.clone()
+        );
+      }
+      
+      triggerCameraShake(intensity) {
+        if (!document.getElementById('opt-shake').checked) return;
+        this.cameraShakeIntensity = intensity;
+        this.cameraShakeEndTime = performance.now() + 500;
+      }
+      
+      clearAll() {
+        this.explosionEngine.clearAll();
+      }
+      
+      update(delta) {
+        const now = performance.now();
+        
+        // Update explosion engine
+        this.explosionEngine.update(delta);
+        
+        // Respawn enemy
+        if (!this.enemyVisible && now > this.enemyRespawnTime) {
+          this.enemyVisible = true;
+          this.enemyGroup.visible = true;
+        }
+        
+        // Rotate enemy
+        if (this.enemyVisible) {
+          this.enemyGroup.rotation.y += delta * 0.5;
+        }
+        
+        // Camera shake
+        if (now < this.cameraShakeEndTime) {
+          const progress = 1 - (this.cameraShakeEndTime - now) / 500;
+          const shake = this.cameraShakeIntensity * (1 - progress);
+          this.camera.position.x = this.cameraOriginalPosition.x + randomSpread(shake);
+          this.camera.position.y = this.cameraOriginalPosition.y + randomSpread(shake);
+        } else {
+          this.camera.position.x = lerp(this.camera.position.x, this.cameraOriginalPosition.x, 0.1);
+          this.camera.position.y = lerp(this.camera.position.y, this.cameraOriginalPosition.y, 0.1);
+        }
+        
+        this.camera.lookAt(0, 0, -15);
+        
+        // Update stats display
+        this.frameCount++;
+        if (now - this.lastFpsTime > 1000) {
+          this.fps = Math.round(this.frameCount * 1000 / (now - this.lastFpsTime));
+          this.frameCount = 0;
+          this.lastFpsTime = now;
+        }
+        
+        document.getElementById('active-count').textContent = this.explosionEngine.stats.activeExplosions;
+        document.getElementById('particle-count').textContent = this.explosionEngine.stats.particleCount;
+        document.getElementById('wreckage-count').textContent = this.explosionEngine.stats.wreckageCount;
+        document.getElementById('fps-count').textContent = this.fps;
+        document.getElementById('last-class').textContent = this.explosionEngine.stats.lastClass;
+        
+        // Highlight active stats
+        document.getElementById('active-count').classList.toggle('active', this.explosionEngine.stats.activeExplosions > 0);
+        document.getElementById('particle-count').classList.toggle('active', this.explosionEngine.stats.particleCount > 50);
+      }
+      
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        const now = performance.now();
+        const delta = Math.min((now - this.lastTime) / 1000, 0.1);
+        this.lastTime = now;
+        
+        this.update(delta);
+        this.renderer.render(this.scene, this.camera);
+      }
+      
+      onResize() {
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+        
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+      }
+    }
+    
+    // ========================================================================
+    // INITIALIZE
+    // ========================================================================
+    let demoScene;
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('game-canvas');
+      demoScene = new DemoScene(container);
+    });
+    
+    // Global functions for buttons
+    function triggerExplosion(explosionClass) {
+      if (demoScene) {
+        demoScene.triggerExplosion(explosionClass);
+      }
+    }
+    
+    function triggerEffect(effectName) {
+      if (demoScene) {
+        demoScene.triggerEffect(effectName);
+      }
+    }
+    
+    function clearAll() {
+      if (demoScene) {
+        demoScene.clearAll();
+      }
+    }
+  </script>
+</body>
+</html>
